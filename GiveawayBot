@@ -1,0 +1,49 @@
+const Discord = require("discord.js");
+const client = new Discord.Client();
+
+let giveawayMessageId;
+let giveawayMessage;
+let giveawayEndTime;
+let giveawayEntries = [];
+
+client.on("ready", () => {
+  console.log(`Bot has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`);
+});
+
+client.on("message", async message => {
+  if (message.content.startsWith("/start")) {
+    const args = message.content.split(" ").slice(1);
+    if (!args[0] || !args[1]) {
+      return message.reply("Please provide a time in seconds and a message id for the giveaway to end.");
+    }
+    giveawayMessageId = args[1];
+    giveawayEndTime = Date.now() + (args[0] * 1000);
+    giveawayMessage = await message.channel.messages.fetch(giveawayMessageId);
+    giveawayMessage.edit(`Giveaway ends in ${args[0]} seconds.`);
+  } else if (message.content.startsWith("/end")) {
+    if (!giveawayMessage) {
+      return message.reply("There is no ongoing giveaway.");
+    }
+    const winner = giveawayEntries[Math.floor(Math.random() * giveawayEntries.length)];
+    giveawayMessage.edit(`The giveaway has ended. The winner is <@${winner}>`);
+    giveawayEntries = [];
+    giveawayMessage = null;
+  } else if (message.content.startsWith("/reroll")) {
+    if (!giveawayMessage) {
+      return message.reply("There is no ongoing giveaway.");
+    }
+    const winner = giveawayEntries[Math.floor(Math.random() * giveawayEntries.length)];
+    giveawayMessage.edit(`The giveaway has ended. The winner is <@${winner}>`);
+  } else if (giveawayMessage && message.content.startsWith("/enter")) {
+    if (Date.now() > giveawayEndTime) {
+      return message.reply("The giveaway has already ended.");
+    }
+    if (giveawayEntries.includes(message.author.id)) {
+      return message.reply("You have already entered the giveaway.");
+    }
+    giveawayEntries.push(message.author.id);
+    message.reply("You have successfully entered the giveaway.");
+  }
+});
+
+client.login(process.env.DISCORD_TOKEN);
